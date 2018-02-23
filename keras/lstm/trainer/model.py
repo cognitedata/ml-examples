@@ -5,7 +5,7 @@ from keras import layers, models
 from tensorflow.python.saved_model import builder as saved_model_builder
 from tensorflow.python.saved_model import tag_constants, signature_constants
 from tensorflow.python.saved_model.signature_def_utils_impl import predict_signature_def
-from trainer import preprocess
+from trainer import processing
 
 
 def model_fn(input_shape, hidden_layers):
@@ -46,9 +46,9 @@ def to_savedmodel(model, export_path):
         builder.save()
 
 
-def generate_input(input_files):
+def generate_input(input_files, pp_dir):
     df = pd.read_csv(tf.gfile.Open(input_files[0]))
-    X, y = preprocess.preprocess(df)
+    X, y = processing.preprocess(df, pp_dir)
     return X, y
 
 

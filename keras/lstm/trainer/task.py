@@ -1,3 +1,5 @@
+'''Trainer entry point required for compatibility with Cognite Model Hosting Environment'''
+
 import argparse
 import glob
 import os
@@ -26,11 +28,13 @@ class ContinuousEval(keras.callbacks.Callback):
                  eval_files,
                  learning_rate,
                  job_dir,
+                 pp_dir,
                  steps=1000):
         self.eval_files = eval_files
         self.eval_frequency = eval_frequency
         self.learning_rate = learning_rate
         self.job_dir = job_dir
+        self.pp_dir = pp_dir
         self.steps = steps
 
     def on_epoch_begin(self, epoch, logs={}):
@@ -46,7 +50,7 @@ class ContinuousEval(keras.callbacks.Callback):
                 checkpoints.sort()
                 lstm_model = load_model(checkpoints[-1])
                 lstm_model = model.compile_model(lstm_model)
-                X, y = model.generate_input(self.eval_files)
+                X, y = model.generate_input(self.eval_files, self.pp_dir)
                 loss = lstm_model.evaluate(x=X, y=y)
                 print('\nEvaluation epoch[{}] loss[{:.2f}] {}'.format(
                     epoch, loss, lstm_model.metrics_names))
@@ -59,6 +63,7 @@ class ContinuousEval(keras.callbacks.Callback):
 def dispatch(train_files,
              eval_files,
              job_dir,
+             pp_dir,
              train_batch_size,
              eval_batch_size,
              learning_rate,
@@ -93,7 +98,8 @@ def dispatch(train_files,
     evaluation = ContinuousEval(eval_frequency,
                                 eval_files,
                                 learning_rate,
-                                job_dir)
+                                job_dir,
+                                pp_dir)
 
     # Tensorboard logs callback
     tblog = keras.callbacks.TensorBoard(
@@ -104,7 +110,7 @@ def dispatch(train_files,
 
     callbacks = [checkpoint, evaluation, tblog]
 
-    X, y = model.generate_input(train_files)
+    X, y = model.generate_input(train_files, pp_dir)
     lstm_model.fit(X, y, epochs=num_epochs, callbacks=callbacks)
 
     # Unhappy hack to work around h5py not being able to write to GCS.
@@ -141,6 +147,9 @@ if __name__ == "__main__":
                         required=True,
                         type=str,
                         help='GCS or local dir to write checkpoints and export model')
+    parser.add_argument('--pp-dir',
+                        type=str,
+                        help='GCS or local dir to write necessary preprocessing objects to')
 
     # Optional parameters for user to specify
     parser.add_argument('--train-batch-size',
