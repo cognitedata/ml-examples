@@ -1,5 +1,3 @@
-'''Trainer entry point required for compatibility with Cognite Model Hosting Environment'''
-
 import argparse
 import glob
 import os
@@ -7,7 +5,7 @@ import os
 import keras
 import pandas as pd
 import tensorflow as tf
-import trainer.model as model
+import blueprint.model as model
 from keras.models import load_model
 from tensorflow.python.lib.io import file_io
 
